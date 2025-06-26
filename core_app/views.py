@@ -18,7 +18,7 @@ from .forms import (
 )
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import transaction
-from django.forms import formset_factory 
+from django.forms import formset_factory
 from .models import (
     Class,
     Quiz,
@@ -53,7 +53,7 @@ def home(request):
     # DEBUG LINE: Check authentication status
     print(f"DEBUG: User authenticated status in home view: {request.user.is_authenticated}")
     print(f"DEBUG: User object: {request.user}")
-    
+
     context = {}
     if request.user.is_authenticated:
         # Crucial check: Ensure the user has a profile.
@@ -260,7 +260,7 @@ def create_quiz(request, quiz_id=None):
                             for answer_obj in answers_to_save:
                                 answer_obj.question = question
                                 answer_obj.save()
-                            
+
                             # Handle deleted answers
                             for obj in answer_formset.deleted_objects:
                                 obj.delete()
@@ -268,11 +268,11 @@ def create_quiz(request, quiz_id=None):
             return redirect('home')
         else:
             pass
-        
+
     else: # This block is for initial GET request
         form = QuizForm(instance=quiz_instance, teacher=request.user)
         question_formset = QuestionFormSet(instance=quiz_instance, prefix='questions')
-        
+
     for i, question_form in enumerate(question_formset):
         question_form.answer_formset = AnswerFormSetForQuestion(
             instance=question_form.instance if question_form.instance.pk else None,
@@ -312,8 +312,10 @@ def take_quiz(request, quiz_id):
     Allows a student to take a specific quiz.
     Displays questions and processes answers.
     """
+    print(f"DEBUG: Entering take_quiz view for quiz_id: {quiz_id}") # ADDED DEBUG
     quiz = get_object_or_404(Quiz, id=quiz_id)
     questions = quiz.questions.all().order_by('id')
+    print(f"DEBUG: Found {questions.count()} questions for quiz {quiz_id}.") # ADDED DEBUG
 
     if request.method == 'POST':
         user_answers = {}
@@ -339,7 +341,7 @@ def take_quiz(request, quiz_id):
                         is_correct = chosen_answer.is_correct
                         if is_correct:
                             score += question.points
-                        
+
                         answer_choices_to_create.append(
                             AnswerChoice(
                                 attempt=None,
@@ -362,12 +364,18 @@ def take_quiz(request, quiz_id):
             for answer_choice in answer_choices_to_create:
                 answer_choice.attempt = quiz_attempt
                 answer_choice.save()
-            
+
             request.user.profile.total_points += score
             request.user.profile.save()
 
         messages.success(request, f"You completed the quiz '{quiz.title}'! Your score: {score}/{total_possible_points}")
         return redirect('quiz_results', attempt_id=quiz_attempt.id)
+    else: # GET request to display quiz
+        context = {
+            'quiz': quiz,
+            'questions': questions,
+        }
+        return render(request, 'quizzes/take_quiz.html', context)
 
 
 @login_required
@@ -384,7 +392,7 @@ def quiz_results(request, attempt_id):
         original_question = ac.question
         chosen_answer = ac.chosen_answer
         correct_answer_for_question = Answer.objects.get(question=original_question, is_correct=True)
-        
+
         results_details.append({
             'question': original_question,
             'chosen_answer': chosen_answer,
@@ -423,7 +431,7 @@ def create_flashcard_set(request, flashcard_set_id=None):
                 for flashcard in flashcards_to_save:
                     flashcard.flashcard_set = flashcard_set
                     flashcard.save()
-                
+
                 for obj in flashcard_formset.deleted_objects:
                     obj.delete()
 
@@ -433,10 +441,10 @@ def create_flashcard_set(request, flashcard_set_id=None):
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"Flashcard Set Error: {field.capitalize()}: {error}")
-            
+
             for error in flashcard_formset.non_form_errors():
                 messages.error(request, f"Flashcard Formset Error: {error}")
-            
+
             for f_form in flashcard_formset:
                 for field, errors in f_form.errors.items():
                     for error in errors:
@@ -566,23 +574,23 @@ def teacher_quiz_dashboard(request, quiz_id):
     Displays a dashboard for a specific quiz, showing analytics and student progress.
     """
     quiz = get_object_or_404(Quiz, id=quiz_id, created_by=request.user)
-    
+
     # Overall Quiz Analytics
     all_attempts = QuizAttempt.objects.filter(quiz=quiz)
-    
+
     total_attempts = all_attempts.count()
     average_score = all_attempts.aggregate(Avg('score'))['score__avg']
-    
+
     # Student Progress Tracking for this Quiz
     student_attempts = []
     # Get distinct students who attempted this quiz
     students_who_attempted = all_attempts.values_list('student__username', flat=True).distinct()
-    
+
     for student_username in students_who_attempted:
         student_user = get_object_or_404(request.user.__class__, username=student_username)
         # Get all attempts by this student for this quiz, ordered by date (most recent first)
         attempts_by_student = all_attempts.filter(student=student_user).order_by('-completed_at')
-        
+
         student_attempts.append({
             'student_username': student_user.username,
             'attempts': attempts_by_student
@@ -599,7 +607,7 @@ def teacher_quiz_dashboard(request, quiz_id):
             attempt__quiz=quiz,
             is_correct=True
         ).count()
-        
+
         # Calculate percentage correct for this question
         percentage_correct = (correct_choices / total_question_attempts * 100) if total_question_attempts > 0 else 0
 
@@ -618,7 +626,7 @@ def teacher_quiz_dashboard(request, quiz_id):
                 'times_chosen': times_chosen,
                 'percentage_chosen': (times_chosen / total_question_attempts * 100) if total_question_attempts > 0 else 0
             })
-        
+
         question_analytics.append({
             'question': question,
             'total_question_attempts': total_question_attempts,
@@ -677,7 +685,7 @@ def create_lecture_note(request, note_id=None):
                     messages.error(request, f"Note Error: {field.capitalize()}: {error}")
     else:
         form = LectureNoteForm(instance=note_instance)
-    
+
     context = {
         'form': form,
         'note_id': note_id,
