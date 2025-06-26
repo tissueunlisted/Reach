@@ -6,14 +6,14 @@ from django.db import transaction
 from django.forms import inlineformset_factory
 from .models import (
     User,
-    UserProfile,
+    UserProfile, # Ensure UserProfile is imported
     Class,
     Quiz,
     Question,
     Answer,
     FlashcardSet,
     Flashcard,
-    LectureNote # Ensure LectureNote is imported here
+    LectureNote
 )
 
 class SignUpForm(UserCreationForm):
@@ -31,15 +31,21 @@ class SignUpForm(UserCreationForm):
     @transaction.atomic
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.email = self.cleaned_data['email'] # Save email
-        user.save()
-        UserProfile.objects.create(user=user, user_type=self.cleaned_data['user_type'])
+        user.email = self.cleaned_data['email']
+        user.save() # User is saved here, triggering the post_save signal immediately
+
+        # The post_save signal should have already created the UserProfile.
+        # Now, we just update its user_type.
+        user_profile = user.profile # Access the profile created by the signal
+        user_profile.user_type = self.cleaned_data['user_type']
+        user_profile.save() # Save the updated user_type to the profile
+
         return user
 
 class ClassCreationForm(forms.ModelForm):
     class Meta:
         model = Class
-        fields = ['name'] # Teacher is set automatically in the view
+        fields = ['name']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Enter class name'}),
         }
@@ -50,7 +56,7 @@ class ClassJoinForm(forms.Form):
 
 class QuizForm(forms.ModelForm):
     assigned_to_classes = forms.ModelMultipleChoiceField(
-        queryset=Class.objects.none(), # Will be set dynamically
+        queryset=Class.objects.none(),
         widget=forms.CheckboxSelectMultiple,
         required=False,
         label="Assign to Classes"
@@ -68,10 +74,9 @@ class QuizForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        teacher = kwargs.pop('teacher', None) # Pop custom 'teacher' argument
+        teacher = kwargs.pop('teacher', None)
         super().__init__(*args, **kwargs)
         if teacher:
-            # Dynamically filter classes to only show those taught by the current teacher
             self.fields['assigned_to_classes'].queryset = Class.objects.filter(teacher=teacher)
 
 
@@ -119,7 +124,6 @@ class FlashcardForm(forms.ModelForm):
 FlashcardFormSet = inlineformset_factory(FlashcardSet, Flashcard, form=FlashcardForm, extra=1, can_delete=True)
 
 
-# NEW FORM: LectureNoteForm
 class LectureNoteForm(forms.ModelForm):
     class Meta:
         model = LectureNote
