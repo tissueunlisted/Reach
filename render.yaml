@@ -1,4 +1,4 @@
-# render.yaml
+# render.yaml - Fixed Database Type
 
 services:
   - type: web
@@ -22,7 +22,7 @@ services:
     envVars:
       - key: DATABASE_URL # Render automatically provides this for its PostgreSQL database
         fromDatabase:
-          name: reach_db # Refers to the database service defined below
+          name: reach-db # Refers to the database service defined below
           property: connectionString
       - key: SECRET_KEY
         generateValue: true # Render will generate a strong secret key for you
@@ -34,11 +34,13 @@ services:
         value: 1
       - key: DEBUG
         value: "False" # Ensure debug is false in production
+      - key: PYTHONUNBUFFERED # Important for real-time log streaming
+        value: "1"
 
     # Health Check (optional but recommended)
     healthCheckPath: /admin/login/ # A simple URL to check if the app is running
 
-  - type: postgres # Define your PostgreSQL database service
+  - type: database # FIXED: Changed from 'postgres' to 'database'
     name: reach-db
     region: oregon # Must be the same region as your web service
     plan: free # Free tier for database
