@@ -1,79 +1,75 @@
-# C:\entc\core_app\management\commands\import_flashcards.py
+    # C:\entc\core_app\management\commands\import_flashcards.py
 
-import csv
-from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
-from django.contrib.auth import get_user_model
-from core_app.models import FlashcardSet, Flashcard
+    import csv
+    import os
+    from django.core.management.base import BaseCommand, CommandError
+    from django.db import transaction
+    from core_app.models import FlashcardSet, Flashcard, User # Import your models
 
-User = get_user_model() # Get the active user model
+    class Command(BaseCommand):
+        help = 'Imports flashcards from a CSV file into existing or new FlashcardSets.'
 
-class Command(BaseCommand):
-    help = 'Imports flashcard sets and flashcards from a CSV file.'
+        def add_arguments(self, parser):
+            # We'll hardcode the CSV path for this one-time deployment,
+            # but keep the argument for flexibility if run locally.
+            parser.add_argument('csv_file', type=str, default='flashcards_data.csv', nargs='?',
+                                help='The path to the CSV file to import (defaults to flashcards_data.csv in project root)')
+            # Add an optional argument for the user who created these flashcards/sets
+            # IMPORTANT: Replace 'admin_render' with the actual username of a teacher/admin
+            # account you created on Render's database (via createsuperuser or signup).
+            parser.add_argument('--user', type=str, default='admin_render',
+                                help='Username of the user who is creating these flashcards/sets. Defaults to a placeholder.')
 
-    def add_arguments(self, parser):
-        # Define the argument for the CSV file path
-        parser.add_argument('csv_file', type=str, help='The path to the CSV file containing flashcard data.')
-        # Optional argument to specify a user to associate flashcards with
-        parser.add_argument(
-            '--user',
-            type=str,
-            default='admin', # Default to 'admin' username
-            help='Username of the teacher to associate imported flashcards with. Defaults to "admin".'
-        )
+        def handle(self, *args, **options):
+            csv_file_name = options['csv_file']
+            username = options['user']
 
-    def handle(self, *args, **options):
-        csv_file_path = options['csv_file']
-        username = options['user']
+            # Construct the absolute path to the CSV file
+            # Render's deployment will have the CSV in the root directory relative to manage.py
+            csv_file_path = os.path.join(os.getcwd(), csv_file_name)
 
-        try:
-            # Attempt to find the specified user, correctly traversing to the UserProfile
-            teacher = User.objects.get(username=username, profile__user_type='teacher')
-        except User.DoesNotExist:
-            raise CommandError(f'Teacher user "{username}" does not exist or is not a teacher. Please create one or specify a valid teacher username using --user.')
-        except Exception as e:
-            raise CommandError(f"An unexpected error occurred during teacher lookup: {e}")
-        
-        self.stdout.write(self.style.SUCCESS(f'Importing flashcards for teacher: {teacher.username}'))
+            # Check if the CSV file exists (important for Render's build process)
+            if not os.path.exists(csv_file_path):
+                raise CommandError(f'CSV file "{csv_file_path}" not found. Ensure it is in your project root.')
+            
+            # Get the user (creator)
+            try:
+                creator_user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                raise CommandError(f'User "{username}" does not exist in the database. Please ensure you have created this user (e.g., via `createsuperuser` on Render) or specified an existing one.')
 
-        # Use a dictionary to store flashcard sets created during import to avoid duplicates
-        flashcard_sets_cache = {}
+            self.stdout.write(self.style.SUCCESS(f'Starting import from "{csv_file_path}" for user "{username}"...'))
 
-        try:
-            with open(csv_file_path, newline='', encoding='utf-8') as csvfile:
-                reader = csv.DictReader(csvfile)
-                
-                # Check for required columns
-                required_headers = [
-                    'set_title', 'set_description', 'set_subject', 'set_topic',
-                    'set_year_group', 'question_text', 'answer_text'
-                ]
-                if not all(header in reader.fieldnames for header in required_headers):
-                    missing = [header for header in required_headers if header not in reader.fieldnames]
-                    # CORRECTED LINE BELOW: Removed 'actomyosin'
-                    raise CommandError(f"CSV file is missing required headers: {', '.join(missing)}. Expected headers: {', '.join(required_headers)}")
+            # Process the CSV file
+            try:
+                with open(csv_file_path, 'r', encoding='utf-8') as file:
+                    reader = csv.DictReader(file)
+                    
+                    # Check for required headers
+                    required_headers = ['set_title', 'set_description', 'set_subject', 'set_topic', 'set_year_group', 'question_text', 'answer_text']
+                    if not all(header in reader.fieldnames for header in required_headers):
+                        raise CommandError(f"CSV file must contain the following headers: {', '.join(required_headers)}")
 
-                flashcards_imported_count = 0
-                sets_created_count = 0
+                    flashcard_sets_processed = {} # To keep track of created/retrieved sets
+                    flashcards_added_count = 0
 
-                for row in reader:
-                    set_title = row['set_title']
-                    set_description = row['set_description']
-                    set_subject = row['set_subject']
-                    set_topic = row['set_topic']
-                    set_year_group = row['set_year_group']
-                    question_text = row['question_text']
-                    answer_text = row['answer_text']
+                    # Use a transaction to ensure atomicity
+                    with transaction.atomic():
+                        for row_num, row in enumerate(reader):
+                            set_title = row.get('set_title', '').strip()
+                            set_description = row.get('set_description', '').strip()
+                            set_subject = row.get('set_subject', '').strip()
+                            set_topic = row.get('set_topic', '').strip()
+                            set_year_group = row.get('set_year_group', '').strip()
+                            question_text = row.get('question_text', '').strip()
+                            answer_text = row.get('answer_text', '').strip()
 
-                    # Validate required fields for the flashcard itself
-                    if not question_text or not answer_text:
-                        self.stdout.write(self.style.WARNING(f"Skipping row due to missing question_text or answer_text: {row}"))
-                        continue
+                            if not set_title or not question_text or not answer_text:
+                                self.stdout.write(self.style.WARNING(f"Skipping row {row_num + 2} (CSV line {row_num + 1}): Missing set_title, question_text, or answer_text."))
+                                continue # Skip row if essential data is missing
 
-                    try:
-                        with transaction.atomic():
                             # Get or create the FlashcardSet
-                            if set_title not in flashcard_sets_cache:
+                            if set_title not in flashcard_sets_processed:
                                 flashcard_set, created = FlashcardSet.objects.get_or_create(
                                     title=set_title,
                                     defaults={
@@ -81,34 +77,31 @@ class Command(BaseCommand):
                                         'subject': set_subject,
                                         'topic': set_topic,
                                         'year_group': set_year_group,
-                                        'created_by': teacher,
+                                        'created_by': creator_user
                                     }
                                 )
-                                flashcard_sets_cache[set_title] = flashcard_set
+                                flashcard_sets_processed[set_title] = flashcard_set
                                 if created:
-                                    sets_created_count += 1
-                                    self.stdout.write(self.style.SUCCESS(f'Created new FlashcardSet: "{set_title}"'))
+                                    self.stdout.write(self.style.NOTICE(f'Created new FlashcardSet: "{set_title}"'))
                                 else:
-                                    self.stdout.write(self.style.WARNING(f'FlashcardSet "{set_title}" already exists. Adding cards to it.'))
+                                    self.stdout.write(self.style.WARNING(f'Using existing FlashcardSet: "{set_title}". Note: If you modify set details in CSV for an existing set, they will be ignored on subsequent runs.'))
                             else:
-                                flashcard_set = flashcard_sets_cache[set_title]
+                                flashcard_set = flashcard_sets_processed[set_title]
 
                             # Create the Flashcard
+                            # Important: This will create duplicate flashcards if run multiple times
+                            # with the same CSV content. This is intended for a ONE-TIME import.
                             Flashcard.objects.create(
                                 flashcard_set=flashcard_set,
                                 question=question_text,
                                 answer=answer_text
                             )
-                            flashcards_imported_count += 1
+                            flashcards_added_count += 1
 
-                    except Exception as e:
-                        self.stdout.write(self.style.ERROR(f'Error importing row {reader.line_num}: {row} - {e}'))
-                        # Continue to next row even if one fails
-                        continue
+                    self.stdout.write(self.style.SUCCESS(f'Successfully imported {flashcards_added_count} flashcards.'))
+                    self.stdout.write(self.style.SUCCESS(f'Processed {len(flashcard_sets_processed)} unique flashcard sets.'))
 
-            self.stdout.write(self.style.SUCCESS(f'Successfully imported {flashcards_imported_count} flashcards into {sets_created_count} new sets and existing sets.'))
-
-        except FileNotFoundError:
-            raise CommandError(f'File not found at "{csv_file_path}"')
-        except Exception as e:
-            raise CommandError(f'An error occurred: {e}')
+            except FileNotFoundError:
+                raise CommandError(f'The file "{csv_file_path}" was not found during execution.')
+            except Exception as e:
+                raise CommandError(f'An error occurred during import: {e}')
