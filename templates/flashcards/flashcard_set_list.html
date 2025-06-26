@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}All Flashcard Sets{% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-lg shadow-md max-w-4xl mx-auto">
+    <h2 class="text-3xl font-bold text-center mb-6 text-green-700">Explore Flashcard Sets</h2>
+
+    {# Search bar #}
+    <form method="GET" action="{% url 'flashcard_set_list' %}" class="mb-8 flex items-center space-x-3">
+        <input type="text" name="q" placeholder="Search by title, subject, topic, creator..."
+               class="form-input flex-grow" value="{{ query|default:'' }}">
+        <button type="submit" class="btn-primary bg-green-600 hover:bg-green-700">
+            <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            Search
+        </button>
+        {% if query %}
+            <a href="{% url 'flashcard_set_list' %}" class="btn-secondary">Clear Search</a>
+        {% endif %}
+    </form>
+
+    {% if available_flashcard_sets %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for flashcard_set in available_flashcard_sets %}
+            <div class="bg-green-50 p-6 rounded-lg shadow-sm border border-green-200">
+                <h3 class="text-xl font-semibold mb-2 text-green-800">{{ flashcard_set.title }}</h3>
+                <p class="text-gray-700 mb-2 text-sm">{{ flashcard_set.description|default:"No description provided." }}</p>
+                <div class="text-sm text-gray-600 mb-4">
+                    <p><strong>Subject:</strong> {{ flashcard_set.subject }}</p>
+                    <p><strong>Topic:</strong> {{ flashcard_set.topic }}</p>
+                    <p><strong>Year Group:</strong> {{ flashcard_set.year_group }}</p>
+                    <p><strong>Created by:</strong> {{ flashcard_set.created_by.username }}</p>
+                    <p><strong>Cards:</strong> {{ flashcard_set.flashcards.count }}</p>
+                </div>
+                <a href="{% url 'study_flashcard_set' flashcard_set.id %}" class="btn-primary bg-green-600 hover:bg-green-700">Study Set</a>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-center text-gray-600">
+            {% if query %}
+                No flashcard sets found matching "{{ query }}".
+            {% else %}
+                No flashcard sets are available yet.
+            {% endif %}
+        </p>
+    {% endif %}
+
+    <div class="mt-8 text-center">
+        <a href="{% url 'home' %}" class="text-green-600 hover:underline">Back to Home</a>
+    </div>
+</div>
+{% endblock %}

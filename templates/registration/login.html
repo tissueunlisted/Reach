@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-lg shadow-md max-w-md mx-auto">
+    <h2 class="text-3xl font-bold text-center mb-6 text-indigo-700">Login to Reach</h2>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <div>
+            <label for="id_username" class="block text-sm font-medium text-gray-700">Username:</label>
+            <input type="text" name="username" id="id_username" class="form-input" required autofocus>
+        </div>
+        <div>
+            <label for="id_password" class="block text-sm font-medium text-gray-700">Password:</label>
+            <input type="password" name="password" id="id_password" class="form-input" required>
+        </div>
+        <button type="submit" class="w-full btn-primary">Login</button>
+    </form>
+    <p class="mt-6 text-center text-gray-600">
+        Don't have an account? <a href="{% url 'signup' %}" class="text-indigo-600 hover:underline">Sign Up</a>
+    </p>
+</div>
+{% endblock %}

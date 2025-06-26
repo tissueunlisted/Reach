@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}Quiz Dashboard: {{ quiz.title }}{% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-lg shadow-md max-w-6xl mx-auto">
+    <h2 class="text-3xl font-bold text-center mb-6 text-indigo-700">Quiz Dashboard: {{ quiz.title }}</h2>
+    <p class="text-center text-gray-600 mb-8">{{ quiz.description|default:"No description provided." }}</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div class="bg-indigo-50 p-6 rounded-lg shadow-sm border border-indigo-200">
+            <h3 class="text-xl font-semibold mb-2 text-indigo-800">Total Attempts</h3>
+            <p class="text-4xl font-bold text-indigo-600">{{ total_attempts }}</p>
+        </div>
+        <div class="bg-indigo-50 p-6 rounded-lg shadow-sm border border-indigo-200">
+            <h3 class="text-xl font-semibold mb-2 text-indigo-800">Average Score</h3>
+            <p class="text-4xl font-bold text-indigo-600">{{ average_score }} / {{ quiz.questions.all|sum_field:'points' }} </p>
+        </div>
+        <div class="bg-indigo-50 p-6 rounded-lg shadow-sm border border-indigo-200">
+            <h3 class="text-xl font-semibold mb-2 text-indigo-800">Total Questions</h3>
+            <p class="text-4xl font-bold text-indigo-600">{{ quiz.questions.count }}</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Student Progress Section -->
+        <div class="bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200">
+            <h3 class="text-2xl font-semibold mb-4 text-indigo-800">Student Attempts</h3>
+            {% if student_attempts %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white rounded-lg shadow-sm">
+                        <thead class="bg-gray-100 border-b border-gray-200">
+                            <tr>
+                                <th class="py-3 px-4 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Student</th>
+                                <th class="py-3 px-4 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Score</th>
+                                <th class="py-3 px-4 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Date</th>
+                                <th class="py-3 px-4 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Accuracy</th>
+                                <th class="py-3 px-4 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for student_attempt_group in student_attempts %}
+                                {% for attempt in student_attempt_group.attempts %}
+                                <tr>
+                                    <td class="py-3 px-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">{{ student_attempt_group.student_username }}</div>
+                                    </td>
+                                    <td class="py-3 px-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">{{ attempt.score }} / {{ attempt.total_possible_points }}</div>
+                                    </td>
+                                    <td class="py-3 px-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-500">{{ attempt.completed_at|date:"M d, Y H:i" }}</div>
+                                    </td>
+                                    <td class="py-3 px-4 whitespace-nowrap">
+                                        <div class="text-sm {% if attempt.accuracy >= 80 %}text-green-600{% elif attempt.accuracy >= 50 %}text-orange-600{% else %}text-red-600{% endif %} font-semibold">
+                                            {{ attempt.accuracy|floatformat:0 }}%
+                                        </div>
+                                    </td>
+                                    <td class="py-3 px-4 whitespace-nowrap text-sm font-medium">
+                                        <a href="{% url 'quiz_results' attempt.id %}" class="text-indigo-600 hover:text-indigo-900">View Details</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-gray-600">No students have attempted this quiz yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- Per-Question Analytics Section -->
+        <div class="bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200">
+            <h3 class="text-2xl font-semibold mb-4 text-indigo-800">Per-Question Analytics</h3>
+            {% if question_analytics %}
+                <div class="space-y-6">
+                    {% for q_analysis in question_analytics %}
+                    <div class="border border-gray-300 rounded-lg p-4 bg-white">
+                        <h4 class="text-lg font-bold text-gray-800 mb-2">Q{{ forloop.counter }}: {{ q_analysis.question.text }}</h4>
+                        <p class="text-sm text-gray-700 mb-2">
+                            <strong>Correctly Answered:</strong> {{ q_analysis.correct_choices }} / {{ q_analysis.total_question_attempts }}
+                            (<span class="font-semibold {% if q_analysis.percentage_correct >= 70 %}text-green-600{% else %}text-red-600{% endif %}">{{ q_analysis.percentage_correct|floatformat:0 }}%</span>)
+                        </p>
+                        <h5 class="text-md font-semibold text-gray-700 mt-3 mb-1">Answer Breakdown:</h5>
+                        <ul class="list-disc list-inside text-sm text-gray-600">
+                            {% for answer_breakdown in q_analysis.answer_breakdown %}
+                                <li class="{% if answer_breakdown.is_correct %}text-green-700 font-medium{% else %}text-gray-700{% endif %}">
+                                    "{{ answer_breakdown.answer_text }}"
+                                    <span class="text-xs">
+                                        ({{ answer_breakdown.times_chosen }} chosen, {{ answer_breakdown.percentage_chosen|floatformat:0 }}%)
+                                        {% if answer_breakdown.is_correct %}<span class="text-green-500">(Correct)</span>{% endif %}
+                                    </span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-gray-600">No question data available for this quiz (no attempts yet).</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mt-8 text-center">
+        <a href="{% url 'home' %}" class="text-indigo-600 hover:underline">Back to Teacher Dashboard</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome to Reach{% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-lg shadow-md max-w-2xl mx-auto text-center">
+    {% if user.is_authenticated %}
+        <h1 class="text-4xl font-bold mb-4 text-indigo-700">Welcome back, {{ user.username }}!</h1>
+        <p class="text-lg text-gray-600 mb-6">Your current role: <span class="font-semibold capitalize text-indigo-500">{{ user.profile.user_type }}</span></p>
+
+        {% if user.profile.user_type == 'teacher' %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                <div class="bg-indigo-50 p-6 rounded-lg shadow-sm">
+                    <h2 class="text-2xl font-semibold mb-4 text-indigo-800">Your Classes</h2>
+                    {% if teacher_classes %}
+                        <ul class="list-disc list-inside text-left">
+                            {% for class in teacher_classes %}
+                                <li class="mb-2 text-gray-700">{{ class.name }} (Code: {{ class.join_code }})</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-gray-500">You haven't created any classes yet.</p>
+                    {% endif %}
+                    <a href="{% url 'create_class' %}" class="mt-4 inline-block btn-primary">Create New Class</a>
+                </div>
+
+                <div class="bg-indigo-50 p-6 rounded-lg shadow-sm">
+                    <h2 class="text-2xl font-semibold mb-4 text-indigo-800">Your Content</h2>
+                    <h3 class="text-xl font-semibold mb-2 text-indigo-600">Quizzes</h3>
+                    {% if quizzes_created %}
+                        <ul class="list-disc list-inside text-left">
+                            {% for quiz in quizzes_created %}
+                                <li class="mb-2 text-gray-700">
+                                    {{ quiz.title }} ({{ quiz.subject }})
+                                    <a href="{% url 'edit_quiz' quiz.id %}" class="text-indigo-400 hover:text-indigo-600 ml-2">(Edit)</a>
+                                    <a href="{% url 'teacher_quiz_dashboard' quiz.id %}" class="text-blue-400 hover:text-blue-600 ml-2">(Dashboard)</a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-gray-500 mb-4">You haven't created any quizzes yet.</p>
+                    {% endif %}
+                    <h3 class="text-xl font-semibold mb-2 text-indigo-600">Flashcards</h3>
+                    {% if flashcard_sets_created %}
+                        <ul class="list-disc list-inside text-left">
+                            {% for flashcard_set in flashcard_sets_created %}
+                                <li class="mb-2 text-gray-700">{{ flashcard_set.title }} ({{ flashcard_set.subject }}) <a href="{% url 'edit_flashcard_set' flashcard_set.id %}" class="text-indigo-400 hover:text-indigo-600">(Edit)</a></li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-gray-500 mb-4">You haven't created any flashcard sets yet.</p>
+                    {% endif %}
+                    <h3 class="text-xl font-semibold mb-2 text-indigo-600">Lecture Notes</h3>
+                    {% if lecture_notes_created %}
+                        <ul class="list-disc list-inside text-left">
+                            {% for note in lecture_notes_created %}
+                                <li class="mb-2 text-gray-700">{{ note.title }} <a href="{% url 'edit_lecture_note' note.id %}" class="text-indigo-400 hover:text-indigo-600">(Edit)</a></li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-gray-500 mb-4">You haven't created any lecture notes yet.</p>
+                    {% endif %}
+                    <div class="mt-4 flex flex-wrap gap-2 justify-center">
+                        <a href="{% url 'create_quiz' %}" class="inline-block btn-primary">Create New Quiz</a>
+                        <a href="{% url 'create_flashcard_set' %}" class="inline-block btn-primary">Create New Flashcard Set</a>
+                        <a href="{% url 'create_lecture_note' %}" class="inline-block btn-primary">Create New Note</a>
+                    </div>
+                </div>
+            </div>
+
+            {% elif user.profile.user_type == 'student' %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                    <div class="bg-green-50 p-6 rounded-lg shadow-sm">
+                        <h2 class="text-2xl font-semibold mb-4 text-green-800">Your Classes</h2>
+                        {% if classes_joined %}
+                            <ul class="list-disc list-inside text-left">
+                                {% for class in classes_joined %}
+                                    <li class="mb-2 text-gray-700">{{ class.name }} (Teacher: {{ class.teacher.username }})</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-gray-500">You haven't joined any classes yet.</p>
+                        {% endif %}
+                        <a href="{% url 'join_class' %}" class="mt-4 inline-block btn-primary bg-green-600 hover:bg-green-700">Join a Class</a>
+                    </div>
+
+                    <div class="bg-green-50 p-6 rounded-lg shadow-sm">
+                        <h2 class="text-2xl font-semibold mb-4 text-green-800">Assigned & Available Learning</h2>
+                        <h3 class="text-xl font-semibold mb-2 text-green-600">Assigned Quizzes</h3>
+                        {% if assigned_quizzes %}
+                            <ul class="list-disc list-inside text-left mb-4">
+                                {% for quiz in assigned_quizzes %}
+                                    <li class="mb-2 text-gray-700">{{ quiz.title }} ({{ quiz.subject }})</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-gray-500 mb-4">No quizzes assigned to your classes yet.</p>
+                        {% endif %}
+                        <h3 class="text-xl font-semibold mb-2 text-green-600">All Flashcard Sets</h3>
+                        {% if flashcard_sets_available %}
+                            <ul class="list-disc list-inside text-left">
+                                {% for flashcard_set in flashcard_sets_available %}
+                                    <li class="mb-2 text-gray-700">{{ flashcard_set.title }} ({{ flashcard_set.subject }})</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-gray-500">No flashcard sets available yet.</p>
+                        {% endif %}
+                        <h3 class="text-xl font-semibold mb-2 text-green-600">Lecture Notes</h3>
+                        {% if lecture_notes_available %}
+                            <ul class="list-disc list-inside text-left">
+                                {% for note in lecture_notes_available %}
+                                    <li class="mb-2 text-gray-700">{{ note.title }} ({{ note.created_by.username }})</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-gray-500 mb-4">No lecture notes available yet.</p>
+                        {% endif %}
+                        <div class="mt-4 flex flex-wrap gap-2 justify-center">
+                            <a href="{% url 'quiz_list' %}" class="inline-block btn-primary bg-green-600 hover:bg-green-700">Explore Quizzes</a>
+                            <a href="{% url 'flashcard_set_list' %}" class="inline-block btn-primary bg-green-600 hover:bg-green-700">Explore Flashcards</a>
+                            <a href="{% url 'leaderboard' %}" class="inline-block btn-primary bg-purple-600 hover:bg-purple-700">View Leaderboard</a>
+                            <a href="{% url 'lecture_note_list' %}" class="inline-block btn-primary bg-purple-600 hover:bg-purple-700">View Lecture Notes</a>
+                        </div>
+                    </div>
+                </div>
+
+            {% else %} {# THIS IS THE BLOCK FOR UNAUTHENTICATED USERS #}
+                <h1 class="text-4xl font-bold mb-4 text-indigo-700">Welcome to Reach!</h1>
+                <p class="text-lg text-gray-600 mb-6">Your go-to platform for interactive learning and mastering new concepts.</p>
+                <p class="text-gray-700 mb-8 max-w-xl mx-auto">
+                    Whether you're a student looking to ace your next exam with personalized quizzes and flashcards,
+                    or a teacher aiming to create engaging and effective learning experiences for your class,
+                    Reach has you covered. Dive into a world of knowledge, track your progress, and climb the leaderboards!
+                </p>
+                <div class="space-x-4">
+                    <a href="{% url 'signup' %}" class="btn-primary">Get Started (Sign Up)</a>
+                    <a href="{% url 'login' %}" class="btn-primary">Login</a>
+                </div>
+            {% endif %} {# End of if user.profile.user_type == 'teacher' / elif ... / else #}
+        {% else %} {# Outer ELSE for if user.is_authenticated #}
+            <h1 class="text-4xl font-bold mb-4 text-indigo-700">Welcome to Reach!</h1>
+            <p class="text-lg text-gray-600 mb-6">Your go-to platform for interactive learning and mastering new concepts.</p>
+            <p class="text-gray-700 mb-8 max-w-xl mx-auto">
+                Whether you're a student looking to ace your next exam with personalized quizzes and flashcards,
+                or a teacher aiming to create engaging and effective learning experiences for your class,
+                Reach has you covered. Dive into a world of knowledge, track your progress, and climb the leaderboards!
+            </p>
+            <div class="space-x-4">
+                <a href="{% url 'signup' %}" class="btn-primary">Get Started (Sign Up)</a>
+                <a href="{% url 'login' %}" class="btn-primary">Login</a>
+            </div>
+        {% endif %} {# End of if user.is_authenticated #}
+    </div>
+    {% endblock %}
+    

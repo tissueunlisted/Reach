@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Take Quiz: {{ quiz.title }}{% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-lg shadow-md max-w-3xl mx-auto">
+    <h2 class="text-3xl font-bold text-center mb-4 text-green-700">{{ quiz.title }}</h2>
+    <p class="text-center text-gray-600 mb-6">{{ quiz.description|default:"No description provided." }}</p>
+
+    <form method="post" class="space-y-8">
+        {% csrf_token %}
+
+        {% for question in questions %}
+            <div class="question-block border border-green-300 p-6 rounded-lg bg-green-50 shadow-sm">
+                <h3 class="text-xl font-semibold mb-4 text-green-800">
+                    Question {{ forloop.counter }}: {{ question.text }} (<span class="font-normal">{{ question.points }} Points</span>)
+                </h3>
+                <div class="space-y-3">
+                    {% for answer in question.answers.all %}
+                        <label class="flex items-center p-3 border border-gray-300 rounded-md bg-white hover:bg-gray-50 cursor-pointer transition duration-150 ease-in-out">
+                            <input type="radio" name="question_{{ question.id }}" value="{{ answer.id }}" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded-full mr-3" required>
+                            <span class="text-gray-800 text-base">{{ answer.text }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+                {% comment %}
+                    Optional: Add question-specific error message display here if needed
+                    {% if errors.question_id %}
+                        <div class="text-red-600 text-sm mt-2">{{ errors.question_id }}</div>
+                    {% endif %}
+                {% endcomment %}
+            </div>
+        {% endfor %}
+
+        <div class="mt-8 text-center">
+            <button type="submit" class="btn-primary bg-green-600 hover:bg-green-700 text-xl px-8 py-3">Submit Quiz</button>
+        </div>
+    </form>
+
+    <div class="mt-8 text-center">
+        <a href="{% url 'quiz_list' %}" class="text-green-600 hover:underline">Back to Quiz List</a>
+    </div>
+</div>
+{% endblock %}

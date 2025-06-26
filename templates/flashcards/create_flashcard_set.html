@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if flashcard_set_id %}Edit Flashcard Set{% else %}Create New Flashcard Set{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-lg shadow-md max-w-4xl mx-auto">
+    <h2 class="text-3xl font-bold text-center mb-6 text-indigo-700">
+        {% if flashcard_set_id %}Edit Flashcard Set{% else %}Create New Flashcard Set{% endif %}
+    </h2>
+
+    <form method="post" id="flashcard-set-form">
+        {% csrf_token %}
+
+        <!-- Flashcard Set Details Form -->
+        <div class="mb-8 p-6 border border-indigo-200 rounded-lg bg-indigo-50">
+            <h3 class="text-xl font-semibold mb-4 text-indigo-800">Set Details</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700">Title:</label>
+                    {{ form.title }}
+                    {% if form.title.errors %}<div class="text-red-600 text-sm mt-1">{% for error in form.title.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.subject.id_for_label }}" class="block text-sm font-medium text-gray-700">Subject:</label>
+                    {{ form.subject }}
+                    {% if form.subject.errors %}<div class="text-red-600 text-sm mt-1">{% for error in form.subject.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.topic.id_for_label }}" class="block text-sm font-medium text-gray-700">Topic:</label>
+                    {{ form.topic }}
+                    {% if form.topic.errors %}<div class="text-red-600 text-sm mt-1">{% for error in form.topic.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.year_group.id_for_label }}" class="block text-sm font-medium text-gray-700">Year Group:</label>
+                    {{ form.year_group }}
+                    {% if form.year_group.errors %}<div class="text-red-600 text-sm mt-1">{% for error in form.year_group.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+                </div>
+                <div class="md:col-span-2">
+                    <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">Description:</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="text-red-600 text-sm mt-1">{% for error in form.description.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+                </div>
+            </div>
+            {% if form.non_field_errors %}
+                <div class="text-red-600 text-sm mt-4">
+                    {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Flashcards Formset -->
+        <h3 class="text-xl font-semibold mb-4 text-indigo-800">Flashcards</h3>
+        <div id="flashcards-container" class="space-y-6">
+            {{ flashcard_formset.management_form }}
+            {% for flashcard_form in flashcard_formset %}
+                <div class="flashcard-form border border-gray-300 p-6 rounded-lg bg-white relative">
+                    <button type="button" class="remove-flashcard-button absolute top-2 right-2 text-red-500 hover:text-red-700 focus:outline-none" title="Remove Flashcard">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                    {% if flashcard_form.instance.pk %}<p class="text-xs text-gray-500 mb-2">Flashcard ID: {{ flashcard_form.instance.pk }}</p>{% endif %}
+                    
+                    {{ flashcard_form.id }}
+                    {{ flashcard_form.DELETE }}
+                    
+                    <div class="mb-4">
+                        <label for="{{ flashcard_form.question.id_for_label }}" class="block text-sm font-medium text-gray-700">Question (Front of Card):</label>
+                        {{ flashcard_form.question }}
+                        {% if flashcard_form.question.errors %}<div class="text-red-600 text-sm mt-1">{% for error in flashcard_form.question.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+                    </div>
+                    <div class="mb-4">
+                        <label for="{{ flashcard_form.answer.id_for_label }}" class="block text-sm font-medium text-gray-700">Answer (Back of Card):</label>
+                        {{ flashcard_form.answer }}
+                        {% if flashcard_form.answer.errors %}<div class="text-red-600 text-sm mt-1">{% for error in flashcard_form.answer.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+                    </div>
+                    {% if flashcard_form.non_field_errors %}
+                        <div class="text-red-600 text-sm mt-4">
+                            {% for error in flashcard_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="add-flashcard-button mt-6 btn-primary">Add Flashcard</button>
+
+        <div class="mt-8 text-center">
+            <button type="submit" class="btn-primary text-xl px-8 py-3">
+                {% if flashcard_set_id %}Update Flashcard Set{% else %}Create Flashcard Set{% endif %}
+            </button>
+        </div>
+    </form>
+    <p class="mt-6 text-center text-gray-600">
+        <a href="{% url 'home' %}" class="text-indigo-600 hover:underline">Back to Home</a>
+    </p>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const flashcardsContainer = document.getElementById('flashcards-container');
+        const addFlashcardButton = document.querySelector('.add-flashcard-button');
+        const totalFlashcardsInput = document.querySelector('#id_flashcards-TOTAL_FORMS'); // Django formset management field
+
+        // Template for a new flashcard form
+        const emptyFlashcardFormTemplate = `
+            <div class="flashcard-form border border-gray-300 p-6 rounded-lg bg-white relative">
+                <button type="button" class="remove-flashcard-button absolute top-2 right-2 text-red-500 hover:text-red-700 focus:outline-none" title="Remove Flashcard">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+                <input type="hidden" name="flashcards-__prefix__-id" id="id_flashcards-__prefix__-id">
+                <input type="hidden" name="flashcards-__prefix__-DELETE" id="id_flashcards-__prefix__-DELETE">
+                
+                <div class="mb-4">
+                    <label for="id_flashcards-__prefix__-question" class="block text-sm font-medium text-gray-700">Question (Front of Card):</label>
+                    <textarea name="flashcards-__prefix__-question" cols="40" rows="2" class="form-input" placeholder="Front of card (Question)" id="id_flashcards-__prefix__-question"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="id_flashcards-__prefix__-answer" class="block text-sm font-medium text-gray-700">Answer (Back of Card):</label>
+                    <textarea name="flashcards-__prefix__-answer" cols="40" rows="2" class="form-input" placeholder="Back of card (Answer)" id="id_flashcards-__prefix__-answer"></textarea>
+                </div>
+            </div>
+        `;
+
+        // Function to get the current total forms count for a specific formset
+        function getFormsetTotalForms(prefix) {
+            const totalFormsInput = document.getElementById(`id_${prefix}-TOTAL_FORMS`);
+            return totalFormsInput ? parseInt(totalFormsInput.value) : 0;
+        }
+
+        // Function to update formset total forms count
+        function updateFormsetTotalForms(prefix, count) {
+            const totalFormsInput = document.getElementById(`id_${prefix}-TOTAL_FORMS`);
+            if (totalFormsInput) {
+                totalFormsInput.value = count;
+            }
+        }
+
+        // Attach event listeners for existing and newly added flashcards
+        function attachFlashcardEventListeners(flashcardFormElement) {
+            // Check if the form is marked for deletion initially (on page load if a POST failed)
+            const deleteInput = flashcardFormElement.querySelector('input[id$="-DELETE"]');
+            if (deleteInput && deleteInput.checked) {
+                flashcardFormElement.style.display = 'none'; // Hide if already marked for deletion
+            }
+
+            // Remove Flashcard button
+            const removeButton = flashcardFormElement.querySelector('.remove-flashcard-button');
+            if (removeButton) {
+                removeButton.addEventListener('click', function() {
+                    const deleteInput = flashcardFormElement.querySelector('input[id$="-DELETE"]');
+                    if (deleteInput) {
+                        if (flashcardFormElement.querySelector('input[id$="-id"]').value) { // Existing form (has an ID)
+                            deleteInput.checked = true; // Mark for deletion
+                            flashcardFormElement.style.display = 'none'; // Hide it visually
+                        } else { // Newly added form (no ID yet)
+                            flashcardFormElement.remove(); // Remove completely from DOM
+                            const currentTotal = getFormsetTotalForms('flashcards');
+                            updateFormsetTotalForms('flashcards', currentTotal - 1);
+                        }
+                    }
+                });
+            }
+        }
+
+        // Add Flashcard functionality
+        addFlashcardButton.addEventListener('click', function() {
+            const currentTotalFlashcards = getFormsetTotalForms('flashcards');
+            const newIndex = currentTotalFlashcards;
+            const newFormHtml = emptyFlashcardFormTemplate.replace(/__prefix__/g, newIndex);
+            
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = newFormHtml;
+            const newFormElement = tempDiv.firstElementChild; // Get the actual form div
+
+            flashcardsContainer.appendChild(newFormElement);
+
+            updateFormsetTotalForms('flashcards', currentTotalFlashcards + 1);
+            attachFlashcardEventListeners(newFormElement); // Attach listeners to new flashcard form
+        });
+
+        // Initial attachment of event listeners to forms rendered by Django
+        document.querySelectorAll('.flashcard-form').forEach(attachFlashcardEventListeners);
+    });
+</script>
+{% endblock %}

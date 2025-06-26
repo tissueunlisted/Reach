@@ -1,0 +1,370 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if quiz_id %}Edit Quiz{% else %}Create New Quiz{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-lg shadow-md max-w-4xl mx-auto">
+    <h2 class="text-3xl font-bold text-center mb-6 text-indigo-700">
+        {% if quiz_id %}Edit Quiz{% else %}Create New Quiz{% endif %}
+    </h2>
+
+    <form method="post" id="quiz-form">
+        {% csrf_token %}
+
+        <!-- Quiz Details Form -->
+        <div class="mb-8 p-6 border border-indigo-200 rounded-lg bg-indigo-50">
+            <h3 class="text-xl font-semibold mb-4 text-indigo-800">Quiz Details</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700">Title:</label>
+                    {{ form.title }}
+                    {% if form.title.errors %}<div class="text-red-600 text-sm mt-1">{% for error in form.title.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.subject.id_for_label }}" class="block text-sm font-medium text-gray-700">Subject:</label>
+                    {{ form.subject }}
+                    {% if form.subject.errors %}<div class="text-red-600 text-sm mt-1">{% for error in form.subject.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.topic.id_for_label }}" class="block text-sm font-medium text-gray-700">Topic:</label>
+                    {{ form.topic }}
+                    {% if form.topic.errors %}<div class="text-red-600 text-sm mt-1">{% for error in form.topic.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.year_group.id_for_label }}" class="block text-sm font-medium text-gray-700">Year Group:</label>
+                    {{ form.year_group }}
+                    {% if form.year_group.errors %}<div class="text-red-600 text-sm mt-1">{% for error in form.year_group.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+                </div>
+                <div class="md:col-span-2">
+                    <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">Description:</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="text-red-600 text-sm mt-1">{% for error in form.description.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Assign to Classes:</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {{ form.assigned_to_classes }}
+                    </div>
+                    {% if form.assigned_to_classes.errors %}<div class="text-red-600 text-sm mt-1">{% for error in form.assigned_to_classes.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+                </div>
+            </div>
+            {% if form.non_field_errors %}
+                <div class="text-red-600 text-sm mt-4">
+                    {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Questions Formset -->
+        <h3 class="text-xl font-semibold mb-4 text-indigo-800">Questions</h3>
+        <div id="questions-container" class="space-y-6">
+            {{ question_formset.management_form }}
+            {% for question_form in question_formset %}
+                <div class="question-form border border-gray-300 p-6 rounded-lg bg-white relative">
+                    <button type="button" class="remove-question-button absolute top-2 right-2 text-red-500 hover:text-red-700 focus:outline-none" title="Remove Question">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                    {% if question_form.instance.pk %}<p class="text-xs text-gray-500 mb-2">Question ID: {{ question_form.instance.pk }}</p>{% endif %}
+                    
+                    {{ question_form.id }}
+                    {{ question_form.DELETE }}
+                    
+                    <div class="mb-4">
+                        <label for="{{ question_form.text.id_for_label }}" class="block text-sm font-medium text-gray-700">Question Text:</label>
+                        {{ question_form.text }}
+                        {% if question_form.text.errors %}<div class="text-red-600 text-sm mt-1">{% for error in question_form.text.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+                    </div>
+                    <div class="mb-4">
+                        <label for="{{ question_form.points.id_for_label }}" class="block text-sm font-medium text-gray-700">Points:</label>
+                        {{ question_form.points }}
+                        {% if question_form.points.errors %}<div class="text-red-600 text-sm mt-1">{% for error in question_form.points.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+                    </div>
+
+                    <!-- Answers Formset for THIS Question -->
+                    <h4 class="text-lg font-semibold mt-6 mb-3 text-gray-700">Answers (One must be correct)</h4>
+                    <div class="answers-container space-y-2">
+                        {% if question_form.answer_formset %} {# Check if answer_formset exists (for existing questions) #}
+                            {{ question_form.answer_formset.management_form }}
+                            {% for answer_form in question_form.answer_formset %}
+                                <div class="answer-form flex items-center space-x-2 p-3 border border-gray-200 rounded-md bg-gray-50">
+                                    <button type="button" class="remove-answer-button text-red-400 hover:text-red-600 focus:outline-none" title="Remove Answer">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
+                                    {{ answer_form.id }}
+                                    {{ answer_form.DELETE }}
+                                    <div class="flex-grow">
+                                        <label for="{{ answer_form.text.id_for_label }}" class="sr-only">Answer Text</label>
+                                        {{ answer_form.text }}
+                                    </div>
+                                    <div class="flex-shrink-0">
+                                        <label for="{{ answer_form.is_correct.id_for_label }}" class="inline-flex items-center cursor-pointer">
+                                            {{ answer_form.is_correct }}
+                                            <span class="ml-2 text-sm font-medium text-gray-700">Correct</span>
+                                        </label>
+                                    </div>
+                                    {% if answer_form.text.errors %}<div class="text-red-600 text-sm mt-1"><p>{{ answer_form.text.errors }}</p></div>{% endif %}
+                                    {% if answer_form.is_correct.errors %}<div class="text-red-600 text-sm mt-1"><p>{{ answer_form.is_correct.errors }}</p></div>{% endif %}
+                                    {% if answer_form.non_field_errors %}<div class="text-red-600 text-sm mt-1">{% for error in answer_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-gray-500">No answer formset loaded for this question.</p>
+                        {% endif %}
+                    </div>
+                    <button type="button" class="add-answer-button mt-3 btn-primary bg-indigo-500 hover:bg-indigo-600 text-sm py-1 px-3">Add Answer</button>
+                    {% if question_form.non_field_errors %}
+                        <div class="text-red-600 text-sm mt-4">
+                            {% for error in question_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="add-question-button mt-6 btn-primary">Add Question</button>
+
+        <div class="mt-8 text-center">
+            <button type="submit" class="btn-primary text-xl px-8 py-3">
+                {% if quiz_id %}Update Quiz{% else %}Create Quiz{% endif %}
+            </button>
+        </div>
+    </form>
+    <p class="mt-6 text-center text-gray-600">
+        <a href="{% url 'home' %}" class="text-indigo-600 hover:underline">Back to Home</a>
+    </p>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const questionsContainer = document.getElementById('questions-container');
+        const addQuestionButton = document.querySelector('.add-question-button');
+        const totalQuestions = document.querySelector('#id_questions-TOTAL_FORMS'); // Django formset management field
+
+        // Template for a new question form (without answers for now)
+        const emptyQuestionFormTemplate = `
+            <div class="question-form border border-gray-300 p-6 rounded-lg bg-white relative">
+                <button type="button" class="remove-question-button absolute top-2 right-2 text-red-500 hover:text-red-700 focus:outline-none" title="Remove Question">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+                <input type="hidden" name="questions-__prefix__-id" id="id_questions-__prefix__-id">
+                <input type="hidden" name="questions-__prefix__-DELETE" id="id_questions-__prefix__-DELETE">
+                
+                <div class="mb-4">
+                    <label for="id_questions-__prefix__-text" class="block text-sm font-medium text-gray-700">Question Text:</label>
+                    <textarea name="questions-__prefix__-text" cols="40" rows="2" class="form-input" placeholder="Enter your question here." id="id_questions-__prefix__-text"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="id_questions-__prefix__-points" class="block text-sm font-medium text-gray-700">Points:</label>
+                    <input type="number" name="questions-__prefix__-points" value="10" class="form-input" min="1" max="100" id="id_questions-__prefix__-points">
+                </div>
+
+                <h4 class="text-lg font-semibold mt-6 mb-3 text-gray-700">Answers (One must be correct)</h4>
+                <div class="answers-container space-y-2">
+                    <!-- Initial answer forms for a new question -->
+                    <input type="hidden" name="questions-__prefix__-answers-TOTAL_FORMS" id="id_questions-__prefix__-answers-TOTAL_FORMS" value="4">
+                    <input type="hidden" name="questions-__prefix__-answers-INITIAL_FORMS" id="id_questions-__prefix__-answers-INITIAL_FORMS" value="0">
+                    <input type="hidden" name="questions-__prefix__-answers-MIN_NUM_FORMS" id="id_questions-__prefix__-answers-MIN_NUM_FORMS" value="1">
+                    <input type="hidden" name="questions-__prefix__-answers-MAX_NUM_FORMS" id="id_questions-__prefix__-answers-MAX_NUM_FORMS">
+
+                    <div class="answer-form flex items-center space-x-2 p-3 border border-gray-200 rounded-md bg-gray-50">
+                        <button type="button" class="remove-answer-button text-red-400 hover:text-red-600 focus:outline-none" title="Remove Answer">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                        <input type="hidden" name="questions-__prefix__-answers-0-id" id="id_questions-__prefix__-answers-0-id">
+                        <input type="hidden" name="questions-__prefix__-answers-0-DELETE" id="id_questions-__prefix__-answers-0-DELETE">
+                        <div class="flex-grow">
+                            <label for="id_questions-__prefix__-answers-0-text" class="sr-only">Answer Text</label>
+                            <input type="text" name="questions-__prefix__-answers-0-text" class="form-input" placeholder="Enter answer option" id="id_questions-__prefix__-answers-0-text">
+                        </div>
+                        <div class="flex-shrink-0">
+                            <label for="id_questions-__prefix__-answers-0-is_correct" class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="questions-__prefix__-answers-0-is_correct" class="form-checkbox h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" id="id_questions-__prefix__-answers-0-is_correct">
+                                <span class="ml-2 text-sm font-medium text-gray-700">Correct</span>
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Repeat for 3 more answers -->
+                    <div class="answer-form flex items-center space-x-2 p-3 border border-gray-200 rounded-md bg-gray-50">
+                        <button type="button" class="remove-answer-button text-red-400 hover:text-red-600 focus:outline-none" title="Remove Answer">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                        <input type="hidden" name="questions-__prefix__-answers-1-id" id="id_questions-__prefix__-answers-1-id">
+                        <input type="hidden" name="questions-__prefix__-answers-1-DELETE" id="id_questions-__prefix__-answers-1-DELETE">
+                        <div class="flex-grow">
+                            <label for="id_questions-__prefix__-answers-1-text" class="sr-only">Answer Text</label>
+                            <input type="text" name="questions-__prefix__-answers-1-text" class="form-input" placeholder="Enter answer option" id="id_questions-__prefix__-answers-1-text">
+                        </div>
+                        <div class="flex-shrink-0">
+                            <label for="id_questions-__prefix__-answers-1-is_correct" class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="questions-__prefix__-answers-1-is_correct" class="form-checkbox h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" id="id_questions-__prefix__-answers-1-is_correct">
+                                <span class="ml-2 text-sm font-medium text-gray-700">Correct</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="answer-form flex items-center space-x-2 p-3 border border-gray-200 rounded-md bg-gray-50">
+                        <button type="button" class="remove-answer-button text-red-400 hover:text-red-600 focus:outline-none" title="Remove Answer">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                        <input type="hidden" name="questions-__prefix__-answers-2-id" id="id_questions-__prefix__-answers-2-id">
+                        <input type="hidden" name="questions-__prefix__-answers-2-DELETE" id="id_questions-__prefix__-answers-2-DELETE">
+                        <div class="flex-grow">
+                            <label for="id_questions-__prefix__-answers-2-text" class="sr-only">Answer Text</label>
+                            <input type="text" name="questions-__prefix__-answers-2-text" class="form-input" placeholder="Enter answer option" id="id_questions-__prefix__-answers-2-text">
+                        </div>
+                        <div class="flex-shrink-0">
+                            <label for="id_questions-__prefix__-answers-2-is_correct" class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="questions-__prefix__-answers-2-is_correct" class="form-checkbox h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" id="id_questions-__prefix__-answers-2-is_correct">
+                                <span class="ml-2 text-sm font-medium text-gray-700">Correct</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="answer-form flex items-center space-x-2 p-3 border border-gray-200 rounded-md bg-gray-50">
+                        <button type="button" class="remove-answer-button text-red-400 hover:text-red-600 focus:outline-none" title="Remove Answer">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                        <input type="hidden" name="questions-__prefix__-answers-3-id" id="id_questions-__prefix__-answers-3-id">
+                        <input type="hidden" name="questions-__prefix__-answers-3-DELETE" id="id_questions-__prefix__-answers-3-DELETE">
+                        <div class="flex-grow">
+                            <label for="id_questions-__prefix__-answers-3-text" class="sr-only">Answer Text</label>
+                            <input type="text" name="questions-__prefix__-answers-3-text" class="form-input" placeholder="Enter answer option" id="id_questions-__prefix__-answers-3-text">
+                        </div>
+                        <div class="flex-shrink-0">
+                            <label for="id_questions-__prefix__-answers-3-is_correct" class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="questions-__prefix__-answers-3-is_correct" class="form-checkbox h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" id="id_questions-__prefix__-answers-3-is_correct">
+                                <span class="ml-2 text-sm font-medium text-gray-700">Correct</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="add-answer-button mt-3 btn-primary bg-indigo-500 hover:bg-indigo-600 text-sm py-1 px-3">Add Answer</button>
+            </div>
+        `;
+
+        const emptyAnswerFormTemplate = `
+            <div class="answer-form flex items-center space-x-2 p-3 border border-gray-200 rounded-md bg-gray-50">
+                <button type="button" class="remove-answer-button text-red-400 hover:text-red-600 focus:outline-none" title="Remove Answer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+                <input type="hidden" name="__question_prefix__-answers-__answer_prefix__-id" id="id___question_prefix__-answers-__answer_prefix__-id">
+                <input type="hidden" name="__question_prefix__-answers-__answer_prefix__-DELETE" id="id___question_prefix__-answers-__answer_prefix__-DELETE">
+                <div class="flex-grow">
+                    <label for="id___question_prefix__-answers-__answer_prefix__-text" class="sr-only">Answer Text</label>
+                    <input type="text" name="__question_prefix__-answers-__answer_prefix__-text" class="form-input" placeholder="Enter answer option" id="id___question_prefix__-answers-__answer_prefix__-text">
+                </div>
+                <div class="flex-shrink-0">
+                    <label for="id___question_prefix__-answers-__answer_prefix__-is_correct" class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="__question_prefix__-answers-__answer_prefix__-is_correct" class="form-checkbox h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" id="id___question_prefix__-answers-__answer_prefix__-is_correct">
+                        <span class="ml-2 text-sm font-medium text-gray-700">Correct</span>
+                    </label>
+                </div>
+            </div>
+        `;
+
+        // Function to update formset total forms count
+        function updateFormsetCount(formsetId, count) {
+            const totalFormsInput = document.getElementById(`id_${formsetId}-TOTAL_FORMS`);
+            if (totalFormsInput) {
+                totalFormsInput.value = count;
+            }
+        }
+
+        // Add Question functionality
+        addQuestionButton.addEventListener('click', function() {
+            const currentTotalQuestions = parseInt(totalQuestions.value);
+            const newIndex = currentTotalQuestions;
+            const newFormHtml = emptyQuestionFormTemplate.replace(/__prefix__/g, newIndex);
+            
+            const newFormElement = document.createElement('div');
+            newFormElement.innerHTML = newFormHtml;
+            questionsContainer.appendChild(newFormElement.firstElementChild); // Append the actual form div
+
+            updateFormsetCount('questions', currentTotalQuestions + 1);
+            attachQuestionEventListeners(newFormElement.firstElementChild); // Attach listeners to new question form
+        });
+
+        // Attach event listeners for existing and newly added questions
+        function attachQuestionEventListeners(questionFormElement) {
+            // Remove Question button
+            const removeButton = questionFormElement.querySelector('.remove-question-button');
+            if (removeButton) {
+                removeButton.addEventListener('click', function() {
+                    const deleteInput = questionFormElement.querySelector('input[id$="-DELETE"]');
+                    if (deleteInput) {
+                        deleteInput.checked = true; // Mark for deletion
+                        questionFormElement.style.display = 'none'; // Hide it visually
+                        // We don't decrement TOTAL_FORMS for deletion; Django handles it based on DELETE checkbox
+                    } else {
+                        // For newly added forms not yet saved, simply remove
+                        questionFormElement.remove();
+                        // This case is tricky as Django formsets expect TOTAL_FORMS to reflect *all* forms.
+                        // Best practice for complex dynamic forms is often to decrement TOTAL_FORMS for new, unsaved forms.
+                        // For simplicity now, we rely on Django's is_valid() to handle empty/deleted forms correctly.
+                    }
+                });
+            }
+
+            // Add Answer button
+            const addAnswerButton = questionFormElement.querySelector('.add-answer-button');
+            const answersContainer = questionFormElement.querySelector('.answers-container');
+            const questionPrefix = questionFormElement.querySelector('textarea[name$="-text"]').id.split('-')[1]; // e.g., 'questions-0'
+
+            addAnswerButton.addEventListener('click', function() {
+                // Get the total forms for this specific answer formset
+                const totalAnswersInput = answersContainer.querySelector(`input[name='${questionPrefix}-answers-TOTAL_FORMS']`);
+                let currentTotalAnswers = parseInt(totalAnswersInput.value);
+                const newAnswerIndex = currentTotalAnswers;
+
+                const newAnswerFormHtml = emptyAnswerFormTemplate
+                    .replace(/__question_prefix__/g, questionPrefix)
+                    .replace(/__answer_prefix__/g, newAnswerIndex);
+                
+                const newAnswerFormElement = document.createElement('div');
+                newAnswerFormElement.innerHTML = newAnswerFormHtml;
+                answersContainer.appendChild(newAnswerFormElement.firstElementChild);
+
+                totalAnswersInput.value = currentTotalAnswers + 1; // Increment total answers for this question's formset
+                attachAnswerEventListeners(newAnswerFormElement.firstElementChild, questionPrefix); // Attach listeners to new answer form
+            });
+
+            // Attach listeners to existing answer forms within this question
+            questionFormElement.querySelectorAll('.answer-form').forEach(answerFormElement => {
+                attachAnswerEventListeners(answerFormElement, questionPrefix);
+            });
+        }
+
+        // Attach event listeners for existing and newly added answers
+        function attachAnswerEventListeners(answerFormElement, questionPrefix) {
+            const removeAnswerButton = answerFormElement.querySelector('.remove-answer-button');
+            if (removeAnswerButton) {
+                removeAnswerButton.addEventListener('click', function() {
+                    const deleteInput = answerFormElement.querySelector('input[id$="-DELETE"]');
+                    if (deleteInput) {
+                        deleteInput.checked = true;
+                        answerFormElement.style.display = 'none';
+                    } else {
+                        answerFormElement.remove();
+                    }
+                });
+            }
+
+            // Ensure only one "Correct" checkbox is selected per question
+            const correctCheckboxes = answerFormElement.closest('.answers-container').querySelectorAll('input[type="checkbox"][name$="-is_correct"]');
+            correctCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        correctCheckboxes.forEach(otherCheckbox => {
+                            if (otherCheckbox !== this) {
+                                otherCheckbox.checked = false;
+                            }
+                        });
+                    }
+                });
+            });
+        }
+
+        // Attach listeners to all initial question forms
+        document.querySelectorAll('.question-form').forEach(attachQuestionEventListeners);
+    });
+</script>
+{% endblock %}

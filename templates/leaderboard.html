@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Leaderboard{% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-lg shadow-md max-w-2xl mx-auto text-center">
+    <h2 class="text-3xl font-bold mb-6 text-purple-700">Global Leaderboard</h2>
+    <p class="text-gray-600 mb-8">Rankings based on total points earned from quizzes.</p>
+
+    {% if top_students %}
+        <div class="overflow-x-auto mb-8">
+            <table class="min-w-full bg-white rounded-lg shadow-sm border border-gray-200">
+                <thead class="bg-purple-100 border-b border-purple-200">
+                    <tr>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-purple-800 uppercase tracking-wider">Rank</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-purple-800 uppercase tracking-wider">Student</th>
+                        <th class="py-3 px-4 text-right text-sm font-medium text-purple-800 uppercase tracking-wider">Total Points</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for student_profile in top_students %}
+                    <tr class="{% if forloop.first %}bg-yellow-50 font-bold{% elif forloop.counter <= 3 %}bg-gray-50{% endif %}">
+                        <td class="py-3 px-4 whitespace-nowrap text-lg text-gray-900">{{ forloop.counter }}</td>
+                        <td class="py-3 px-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <span class="w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center text-purple-800 font-semibold mr-3">
+                                    {{ student_profile.user.username|first|upper }}
+                                </span>
+                                <div class="text-sm font-medium text-gray-900">{{ student_profile.user.username }}</div>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 whitespace-nowrap text-right text-lg font-bold text-purple-600">{{ student_profile.total_points }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="py-4 px-4 text-center text-gray-500">No students on the leaderboard yet. Take some quizzes!</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-gray-600">No one has earned points yet. Encourage your students to take some quizzes!</p>
+    {% endif %}
+
+    <div class="mt-8 text-center">
+        <a href="{% url 'home' %}" class="text-purple-600 hover:underline">Back to Home</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Study: {{ flashcard_set.title }}{% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-lg shadow-md max-w-2xl mx-auto text-center">
+    <h2 class="text-3xl font-bold mb-4 text-green-700">{{ flashcard_set.title }}</h2>
+    <p class="text-gray-600 mb-6">Study Progress: {{ known_count }} / {{ total_cards }} Known</p>
+
+    {% if total_cards == 0 %}
+        <p class="text-gray-700">This flashcard set has no cards yet. <a href="{% url 'edit_flashcard_set' flashcard_set.id %}" class="text-indigo-600 hover:underline">Edit set to add cards.</a></p>
+    {% elif is_session_complete %}
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-6" role="alert">
+            <strong class="font-bold">Congratulations!</strong>
+            <span class="block sm:inline">You've mastered all cards in this set!</span>
+        </div>
+        <form method="post" action="{% url 'study_flashcard_set' flashcard_set.id %}" class="mt-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="restart_session">
+            <button type="submit" class="btn-primary bg-green-600 hover:bg-green-700">Restart Session</button>
+        </form>
+    {% else %}
+        <div class="flashcard-card bg-gray-100 rounded-lg shadow-lg mb-8 p-6 relative min-h-64 flex flex-col justify-center items-center text-center cursor-pointer transition-transform duration-300 ease-in-out transform hover:scale-105" onclick="this.classList.toggle('flipped')">
+            <div class="flashcard-front absolute w-full h-full flex justify-center items-center p-6 backface-hidden">
+                <p class="text-2xl font-bold text-gray-800">{{ current_flashcard.question }}</p>
+            </div>
+            <div class="flashcard-back absolute w-full h-full flex justify-center items-center p-6 backface-hidden rotate-y-180">
+                <p class="text-2xl font-bold text-indigo-700">{{ current_flashcard.answer }}</p>
+            </div>
+        </div>
+
+        <p class="text-sm text-gray-500 mb-6">Click the card to flip!</p>
+
+        <form method="post" action="{% url 'study_flashcard_set' flashcard_set.id %}" class="space-y-3">
+            {% csrf_token %}
+            <input type="hidden" name="card_id" value="{{ current_flashcard.id }}">
+
+            <div class="flex flex-col sm:flex-row justify-center gap-4 mb-4">
+                <button type="submit" name="action" value="mark_known" class="btn-primary bg-green-500 hover:bg-green-600 flex-1 py-3 px-6">
+                    <i class="fas fa-check mr-2"></i> Mark Known
+                </button>
+                <button type="submit" name="action" value="mark_unknown" class="btn-primary bg-red-500 hover:bg-red-600 flex-1 py-3 px-6">
+                    <i class="fas fa-times mr-2"></i> Mark Unknown
+                </button>
+            </div>
+
+            <div class="flex justify-between gap-4">
+                <button type="submit" name="action" value="previous_card" class="btn-secondary w-1/2 flex items-center justify-center py-3 px-6 {% if current_card_index == 0 %}opacity-50 cursor-not-allowed{% endif %}" {% if current_card_index == 0 %}disabled{% endif %}>
+                    <i class="fas fa-arrow-left mr-2"></i> Previous
+                </button>
+                <button type="submit" name="action" value="next_card" class="btn-secondary w-1/2 flex items-center justify-center py-3 px-6 {% if current_card_index >= last_card_index %}opacity-50 cursor-not-allowed{% endif %}" {% if current_card_index >= last_card_index %}disabled{% endif %}>
+                    Next <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+            <button type="submit" name="action" value="restart_session" class="btn-secondary mt-4 w-full">Restart Session</button>
+        </form>
+    {% endif %}
+
+    <div class="mt-8 text-center">
+        <a href="{% url 'flashcard_set_list' %}" class="text-green-600 hover:underline">Back to All Sets</a>
+    </div>
+</div>
+
+<style>
+    /* Add for 3D flip effect */
+    .flashcard-card {
+        perspective: 1000px;
+    }
+
+    .flashcard-card.flipped .flashcard-front {
+        transform: rotateY(180deg);
+    }
+
+    .flashcard-card.flipped .flashcard-back {
+        transform: rotateY(360deg);
+    }
+
+    .flashcard-front, .flashcard-back {
+        transition: transform 0.6s;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden; /* For Safari */
+    }
+
+    .flashcard-back {
+        transform: rotateY(180deg);
+    }
+</style>
+
+<!-- Font Awesome for icons -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js"></script>
+{% endblock %}

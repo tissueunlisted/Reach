@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-lg shadow-md max-w-md mx-auto">
+    <h2 class="text-3xl font-bold text-center mb-6 text-indigo-700">Sign Up for Reach</h2>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="mb-4">
+                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    {{ field.label }}:
+                </label>
+                {% if field.field.widget.input_type == 'radio' %}
+                    <div class="mt-1 space-y-2">
+                        {% for choice in field %}
+                            <label class="inline-flex items-center">
+                                {{ choice.tag }}
+                                <span class="ml-2 text-gray-700">{{ choice.choice_label }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    {{ field }}
+                    {% if field.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ field.help_text }}</p>
+                    {% endif %}
+                {% endif %}
+                {% if field.errors %}
+                    <div class="text-red-600 text-sm mt-1">
+                        {% for error in field.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+        <button type="submit" class="w-full btn-primary">Sign Up</button>
+    </form>
+    <p class="mt-6 text-center text-gray-600">
+        Already have an account? <a href="{% url 'login' %}" class="text-indigo-600 hover:underline">Login</a>
+    </p>
+</div>
+{% endblock %}
